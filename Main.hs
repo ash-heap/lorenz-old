@@ -22,18 +22,42 @@
  ------------------------------------------------------------------------------}
 
 
-
 module Main where
 
 import Graphics.UI.GLUT
 import Data.IORef
 import System.IO
+import Data.Packed.Vector
+import Data.Packed.Matrix
+import Numeric.GSL.ODE
+import Control.Monad
 
 
 -- The Lorenz Attractor program.
 main :: IO ()
-main = do
-    putStrLn "Lorenz Attractor"
+main = mapM_ (printStuff) a
+    where
+        a = toLists(odeSolve (lorenz' 10 28 2.6) [1,1,1] (fromList [0,0.01..1000]))
+
+printStuff :: [Double] -> IO ()
+printStuff (x:y:z:_) = putStrLn ((show x) ++ "  " ++ (show y) ++ "  " ++ (show z))
+
+-- Lorenz attractor function.
+-- σ -> ρ -> β -> t -> (x, y, z) -> (dxdt, dydt, dzdt)
+lorenz :: Num a => a -> a -> a -> a -> (a, a, a) -> (a, a, a)
+lorenz s r b t (x, y, z) = (dxdt, dydt, dzdt)
+    where
+        dxdt = s * (y - x)
+        dydt = x * (r - z) - y
+        dzdt = x * y - b * z
+
+-- Same as the lorenz attractor function but uses lists instead of tuples and
+-- thus can have a runtime error.
+-- σ -> ρ -> β -> t -> [x, y, z] -> [dxdt, dydt, dzdt]
+lorenz' :: Num a => a -> a -> a -> a -> [a] -> [a]
+lorenz' s r b t (x:y:z:_) = [dxdt, dydt, dzdt]
+    where 
+        (dxdt, dydt, dzdt) = lorenz s r b t (x, y, z)
 
 
 
@@ -50,4 +74,4 @@ main = do
 -- -- Print OpenGL errors.
 -- printErrors :: IO ()
 -- printErrors = get errors >>= mapM_ (hPutStrLn stderr . show)
-
+--
