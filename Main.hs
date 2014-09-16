@@ -46,14 +46,14 @@ type Vector3f = Vector3 GLfloat
 -- Helpful base vectors.
 zeroVector3f = Vector3 0.0 0.0 0.0 :: Vector3f
 xVector3f    = Vector3 1.0 0.0 0.0 :: Vector3f
-yVector3f    = Vector3 0.0 2.0 0.0 :: Vector3f
-zVector3f    = Vector3 0.0 0.0 3.0 :: Vector3f
+yVector3f    = Vector3 0.0 1.0 0.0 :: Vector3f
+zVector3f    = Vector3 0.0 0.0 1.0 :: Vector3f
 
 -- Helpful base vectors.
 originVertex3f = Vertex3 0.0 0.0 0.0 :: Vertex3f
 xVertex3f    = Vertex3 1.0 0.0 0.0 :: Vertex3f
-yVertex3f    = Vertex3 0.0 2.0 0.0 :: Vertex3f
-zVertex3f    = Vertex3 0.0 0.0 3.0 :: Vertex3f
+yVertex3f    = Vertex3 0.0 1.0 0.0 :: Vertex3f
+zVertex3f    = Vertex3 0.0 0.0 1.0 :: Vertex3f
 
 -- Some base colors.
 black   = Color3 0.0 0.0 0.0 :: Color3f
@@ -66,12 +66,15 @@ magenta = Color3 1.0 0.0 1.0 :: Color3f
 yellow  = Color3 1.0 1.0 0.0 :: Color3f
 
 
--- -- Contains the values related to the view.
--- data View = View { viewScale :: GLfloat
---                  , center    :: Vertex3f
---                  , azimuth   :: GLfloat
---                  , elevation :: GLfloat
---                  } deriving (Show)
+-- Contains the values related to the view.
+data View = View { viewScale :: GLfloat -- projection scale
+                 , viewCenter          :: Vertex3f -- center of projection
+                 , viewAzimuth         :: GLfloat -- rotation
+                 , viewElevation       :: GLfloat -- rotation
+                 } deriving (Show)
+
+
+data App = App { appView :: View } deriving (Show)
 
 
 
@@ -82,13 +85,17 @@ yellow  = Color3 1.0 1.0 0.0 :: Color3f
 
 
 
+initialView :: View
+initialView = View 
+    10.0 -- projectionScale
+    (Vertex3 0.0 0.0 0.0) -- center
+    45.0 -- azimuth
+    45.0 -- elevation
 
--- Amount to scale unit cube orthogonal projection.
-viewScale :: GLdouble
-viewScale = 3
 
 
-
+initialApp :: App
+initialApp = App initialView
 
 
 
@@ -96,22 +103,23 @@ viewScale = 3
 -- The Lorenz Attractor program.
 main :: IO ()
 main = do
-        initilizeGLUT
+        appRef <- newIORef initialApp
+        initilizeGLUT appRef
         mainLoop
 
 
 
-initilizeGLUT :: IO ()
-initilizeGLUT = do
+initilizeGLUT :: IORef App -> IO ()
+initilizeGLUT appRef = do
         -- Initilize and open window.
         (_, _) <- getArgsAndInitialize
         initialDisplayMode $= [RGBAMode, DoubleBuffered, WithDepthBuffer]
         _ <- createWindow windowTitle
         -- Callbacks.
         specialCallback $= Nothing
-        reshapeCallback $= Just reshape
+        reshapeCallback $= Just (reshape appRef)
         idleCallback    $= Nothing
-        displayCallback $= display
+        displayCallback $= display appRef
         -- OpenGL settings.
         depthFunc       $= Just Lequal
     where
@@ -121,13 +129,13 @@ initilizeGLUT = do
 
 
 -- This function is called by GLUT to display the scene.
-display :: DisplayCallback
-display = do
+display :: IORef App -> DisplayCallback
+display appRef = do
         -- Clear and reset.
         clear [ColorBuffer, DepthBuffer]
         loadIdentity
         -- Draw axis.
-        drawAxes
+        readIORef appRef >>= drawAxes . viewScale . appView
         -- Draw and swap buffers.
         flush
         swapBuffers
@@ -136,16 +144,38 @@ display = do
 
 
 
-drawAxes :: IO ()
-drawAxes = do
+-- This funtion is called by GLUT when the window is resized.
+reshape :: IORef App -> ReshapeCallback
+reshape appRef (Size width height) = do
+        -- Set viewport as entire window.
+        viewport $= (Position 0 0, Size width height)
+        -- Orthogonal projection: scaled cube adjusted for aspect ratio.
+        s <- readIORef appRef >>= return . floatToFloat . viewScale . appView
+        matrixMode $= Projection
+        loadIdentity
+        ortho (-w2h*s) (w2h*s) (-1.0*s) (1.0*s) (-1.0*s) (1.0*s)
+        -- Reset model view to the identity matrix.
+        matrixMode $= Modelview 0
+        loadIdentity
+    where
+        -- Width to height ratio.
+        w2h = if height > 0
+                then (fromIntegral width)/(fromIntegral height)
+                else 1
+
+
+
+drawAxes :: GLfloat -> IO ()
+drawAxes scaleFactor = preservingMatrix $ do
+        scale axisLength axisLength axisLength
         -- Axes lines.
-        drawVector red   (Vector3 (0.6*s) 0.0    0.0)
-        drawVector green (Vector3  0.0   (0.6*s) 0.0)
-        drawVector blue  (Vector3  0.0    0.0   (0.6*s))
+        drawVector red   xVector3f
+        drawVector green yVector3f
+        drawVector blue  zVector3f
         -- Draw point at origin.
         drawPoint 5.0 white originVertex3f
     where
-        s = floatToFloat viewScale
+        axisLength = 0.7*scaleFactor
 
 
 
@@ -166,25 +196,6 @@ drawVector c (Vector3 x y z) =
 
 
 
--- This funtion is called by GLUT when the window is resized.
-reshape :: ReshapeCallback
-reshape (Size width height) = do
-        -- Set viewport as entire window.
-        viewport $= (Position 0 0, Size width height)
-        -- Orthogonal projection: scaled cube adjusted for aspect ratio.
-        matrixMode $= Projection
-        loadIdentity
-        ortho (-w2h*viewScale) (w2h*viewScale)  -- left right
-              (-1.0*viewScale) (1.0*viewScale)  -- bottom top
-              (-1.0*viewScale) (1.0*viewScale)  -- near far
-        -- Reset model view to the identity matrix.
-        matrixMode $= Modelview 0
-        loadIdentity
-    where
-        -- Width to height ratio.
-        w2h = if height > 0
-                then (fromIntegral width)/(fromIntegral height)
-                else 1
 
 
 
