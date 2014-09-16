@@ -24,6 +24,7 @@
 
 module Main where
 
+import Data.Number.FloatToFloat
 import Graphics.UI.GLUT
 import Data.IORef
 import System.IO
@@ -36,14 +37,60 @@ import Paths_lorenz(version)
 import Data.Version(showVersion)
 
 
+-- Convenience types.
+type Vertex3f = Vertex3 GLfloat
+type Color3f  = Color3 GLfloat
+type Vector3f = Vector3 GLfloat
 
 
+-- Helpful base vectors.
+zeroVector3f = Vector3 0.0 0.0 0.0 :: Vector3f
+xVector3f    = Vector3 1.0 0.0 0.0 :: Vector3f
+yVector3f    = Vector3 0.0 2.0 0.0 :: Vector3f
+zVector3f    = Vector3 0.0 0.0 3.0 :: Vector3f
+
+-- Helpful base vectors.
+originVertex3f = Vertex3 0.0 0.0 0.0 :: Vertex3f
+xVertex3f    = Vertex3 1.0 0.0 0.0 :: Vertex3f
+yVertex3f    = Vertex3 0.0 2.0 0.0 :: Vertex3f
+zVertex3f    = Vertex3 0.0 0.0 3.0 :: Vertex3f
+
+-- Some base colors.
+black   = Color3 0.0 0.0 0.0 :: Color3f
+white   = Color3 1.0 1.0 1.0 :: Color3f
+red     = Color3 1.0 0.0 0.0 :: Color3f
+green   = Color3 0.0 1.0 0.0 :: Color3f
+blue    = Color3 0.0 0.0 1.0 :: Color3f
+cyan    = Color3 0.0 1.0 1.0 :: Color3f
+magenta = Color3 1.0 0.0 1.0 :: Color3f
+yellow  = Color3 1.0 1.0 0.0 :: Color3f
+
+
+-- -- Contains the values related to the view.
+-- data View = View { viewScale :: GLfloat
+--                  , center    :: Vertex3f
+--                  , azimuth   :: GLfloat
+--                  , elevation :: GLfloat
+--                  } deriving (Show)
+
+
+
+-- -- This represents a 3D parametric function.
+-- data Function = Function { time   :: [GLfloat]
+--                          , points :: [Vertex3f]
+--                          } deriving (Show)
 
 
 
 
 -- Amount to scale unit cube orthogonal projection.
+viewScale :: GLdouble
 viewScale = 3
+
+
+
+
+
 
 
 -- The Lorenz Attractor program.
@@ -71,26 +118,51 @@ initilizeGLUT = do
         windowTitle = "Lorenz Atractor (v" ++ showVersion version ++ ")"
 
 
+
+
 -- This function is called by GLUT to display the scene.
 display :: DisplayCallback
 display = do
-    -- Clear and reset.
-    clear [ColorBuffer, DepthBuffer]
-    loadIdentity
-    -- Draw RGB triangle.
-    renderPrimitive Triangles $ do
-        color  $ (Color3    1.0    0.0   0.0 :: Color3 GLfloat)
-        vertex $ (Vertex2   0.0    0.5       :: Vertex2 GLfloat)
-        color  $ (Color3    0.0    1.0   0.0 :: Color3 GLfloat)
-        vertex $ (Vertex2   0.5  (-0.5)      :: Vertex2 GLfloat)
-        color  $ (Color3    0.0    0.0   1.0 :: Color3 GLfloat)
-        vertex $ (Vertex2 (-0.5) (-0.5)      :: Vertex2 GLfloat)
-    -- Draw and swap buffers.
-    flush
-    swapBuffers
-    -- Check for errors.
-    printErrors
+        -- Clear and reset.
+        clear [ColorBuffer, DepthBuffer]
+        loadIdentity
+        -- Draw axis.
+        drawAxes
+        -- Draw and swap buffers.
+        flush
+        swapBuffers
+        -- Check for errors.
+        printErrors
 
+
+
+drawAxes :: IO ()
+drawAxes = do
+        -- Axes lines.
+        drawVector red   (Vector3 (0.6*s) 0.0    0.0)
+        drawVector green (Vector3  0.0   (0.6*s) 0.0)
+        drawVector blue  (Vector3  0.0    0.0   (0.6*s))
+        -- Draw point at origin.
+        drawPoint 5.0 white originVertex3f
+    where
+        s = floatToFloat viewScale
+
+
+
+drawPoint :: GLfloat -> Color3f -> Vertex3f -> IO ()
+drawPoint p c v = do
+        pointSize $= p
+        renderPrimitive Points $ do
+            color c
+            vertex v
+
+
+drawVector :: Color3f -> Vector3f -> IO ()
+drawVector c (Vector3 x y z) =
+        renderPrimitive Lines $ do
+            color c
+            vertex originVertex3f
+            vertex $ Vertex3 x y z
 
 
 
