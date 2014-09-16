@@ -153,7 +153,9 @@ reshape appRef (Size width height) = do
         s <- readIORef appRef >>= return . floatToFloat . viewScale . appView
         matrixMode $= Projection
         loadIdentity
-        ortho (-w2h*s) (w2h*s) (-1.0*s) (1.0*s) (-1.0*s) (1.0*s)
+        if w2h >= 1
+            then ortho (-w2h*s) (w2h*s) (-1.0*s) (1.0*s) (-1.0*s) (1.0*s)
+            else ortho (-1.0*s) (1.0*s) (-s/w2h) (s/w2h) (-1.0*s) (1.0*s)
         -- Reset model view to the identity matrix.
         matrixMode $= Modelview 0
         loadIdentity
