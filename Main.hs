@@ -31,7 +31,6 @@ import System.IO
 import qualified Data.Packed.Vector as V
 import qualified Data.Packed.Matrix as M
 import Numeric.GSL.ODE
-import Control.Monad
 
 import Paths_lorenz(version)
 import Data.Version(showVersion)
@@ -67,7 +66,7 @@ yellow  = Color3 1.0 1.0 0.0 :: Color3f
 
 
 -- Contains the values related to the view.
-data View = View { viewScale :: GLfloat -- projection scale
+data View = View { viewScale :: GLfloat -- scale
                  , viewCenter          :: Vertex3f -- center of projection
                  , viewAzimuth         :: GLfloat -- rotation
                  , viewElevation       :: GLfloat -- rotation
@@ -87,7 +86,7 @@ data App = App { appView :: View } deriving (Show)
 
 initialView :: View
 initialView = View 
-    10.0 -- projectionScale
+    10.0 -- scale
     (Vertex3 0.0 0.0 0.0) -- center
     45.0 -- azimuth
     45.0 -- elevation
