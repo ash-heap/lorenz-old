@@ -17,9 +17,6 @@ PROGRAM=lorenz
 # Sources
 SOURCES=Main.hs
 
-# Haskell libraries.
-LIBS=GLUT
-
 ################################################################################
 
 
@@ -38,20 +35,15 @@ all: static
 
 # Make a static binary.
 .PHONY: static
-static: libs $(PROGRAM)
+static: sandbox $(PROGRAM)
 
 # Make a dynamic binary.
 .PHONY: dynamic
-dynamic: libs $(PROGRAM)
+dynamic: sandbox $(PROGRAM)
 
 # Install a cabal sandbox.
 .PHONY: sandbox
 sandbox: .cabal-sandbox
-
-# Install libraries.
-.PHONY: libs
-libs: sandbox
-	cabal --require-sandbox install $(LIBS)
 
 # Clean up the build.
 .PHONY: clean 
@@ -74,6 +66,7 @@ clean-all: clean clean-sandbox
 ################################################################################
 
 .cabal-sandbox:
+	cabal update
 	cabal sandbox init
 
 .PHONY: clean-sandbox
@@ -81,6 +74,7 @@ clean-sandbox:
 	cabal sandbox delete
 
 dist:
+	cabal --require-sandbox install --only-dependencies
 	cabal configure --ghc-options="$(GHCFLAGS)"
 
 $(PROGRAM): dist/build/$(PROGRAM)/$(PROGRAM)
